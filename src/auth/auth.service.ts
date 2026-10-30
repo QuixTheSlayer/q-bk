@@ -24,18 +24,18 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string): Promise<AuthResponse> {
-    if (this.usersService.findByEmail(email)) {
+    if (await this.usersService.findByEmail(email)) {
       throw new ConflictException('An account with this email already exists');
     }
 
     const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
-    const user = this.usersService.create(email, passwordHash);
+    const user = await this.usersService.create(email, passwordHash);
 
     return this.issueTokens(user);
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const user = this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -61,7 +61,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    const user = this.usersService.findById(payload.sub);
+    const user = await this.usersService.findById(payload.sub);
     if (!user?.refreshTokenHash) {
       throw new UnauthorizedException('Refresh token has been revoked');
     }
@@ -78,7 +78,7 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
-    this.usersService.setRefreshTokenHash(userId, null);
+    await this.usersService.setRefreshTokenHash(userId, null);
   }
 
   private async issueTokens(user: StoredUser): Promise<AuthResponse> {
@@ -111,7 +111,7 @@ export class AuthService {
       refreshToken,
       PASSWORD_SALT_ROUNDS,
     );
-    this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
+    await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
 
     return this.buildResponse(user, { accessToken, refreshToken });
   }

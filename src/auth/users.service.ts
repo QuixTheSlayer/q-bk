@@ -1,49 +1,38 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './user.entity.js';
 
-export interface StoredUser {
-  id: string;
-  email: string;
-  passwordHash: string;
-  refreshTokenHash: string | null;
-}
+export type StoredUser = User;
 
-/**
- * In-memory user store. Swap for a real database repository without
- * changing AuthService's contract.
- */
 @Injectable()
 export class UsersService {
-  private readonly usersById = new Map<string, StoredUser>();
-  private readonly usersByEmail = new Map<string, string>();
-  private nextId = 1;
+  constructor(
+    @InjectRepository(User) private readonly users: Repository<User>,
+  ) {}
 
-  findByEmail(email: string): StoredUser | undefined {
-    const id = this.usersByEmail.get(email.toLowerCase());
-    return id ? this.usersById.get(id) : undefined;
+  findByEmail(email: string): Promise<StoredUser | null> {
+    return this.users.findOne({ where: { email: email.toLowerCase() } });
   }
 
-  findById(id: string): StoredUser | undefined {
-    return this.usersById.get(id);
+  findById(id: string): Promise<StoredUser | null> {
+    return this.users.findOne({ where: { id } });
   }
 
-  create(email: string, passwordHash: string): StoredUser {
-    const id = String(this.nextId++);
-    const user: StoredUser = {
-      id,
-      email: email.toLowerCase(),
-      passwordHash,
-      refreshTokenHash: null,
-    };
-    this.usersById.set(id, user);
-    this.usersByEmail.set(user.email, id);
-    return user;
+  create(email: string, passwordHash: string): Promise<StoredUser> {
+    return this.users.save(
+      this.users.create({
+        email: email.toLowerCase(),
+        passwordHash,
+        refreshTokenHash: null,
+      }),
+    );
   }
 
-  setRefreshTokenHash(userId: string, refreshTokenHash: string | null): void {
-    const user = this.usersById.get(userId);
-    if (!user) {
-      return;
-    }
-    user.refreshTokenHash = refreshTokenHash;
+  async setRefreshTokenHash(
+    userId: string,
+    refreshTokenHash: string | null,
+  ): Promise<void> {
+    await this.users.update({ id: userId }, { refreshTokenHash });
   }
 }
