@@ -4,6 +4,9 @@ import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { createFakeUserRepository } from './testing/fake-user.repository.js';
+import { User } from './user.entity.js';
 import { UsersService } from './users.service.js';
 
 describe('AuthController', () => {
@@ -19,6 +22,7 @@ describe('AuthController', () => {
       providers: [
         AuthService,
         UsersService,
+        { provide: getRepositoryToken(User), useValue: createFakeUserRepository() },
         {
           provide: ConfigService,
           useValue: { get: (_key: string, fallback?: unknown) => fallback },

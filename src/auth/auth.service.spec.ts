@@ -2,7 +2,10 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthService } from './auth.service.js';
+import { createFakeUserRepository } from './testing/fake-user.repository.js';
+import { User } from './user.entity.js';
 import { UsersService } from './users.service.js';
 
 describe('AuthService', () => {
@@ -14,6 +17,10 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         UsersService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: createFakeUserRepository(),
+        },
         {
           provide: ConfigService,
           useValue: { get: (_key: string, fallback?: unknown) => fallback },
